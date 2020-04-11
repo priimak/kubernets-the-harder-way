@@ -54,8 +54,8 @@ Copy control plane software onto node `k1`
 
 Record host names and ip addresses for the Kubernetes hosts
 
-    K1IP=$(host k1 | grep has | sed 's/.*has address //')
-    K2IP=$(host k2 | grep has | sed 's/.*has address //')
+    k1ip=$(host k1 | grep has | sed 's/.*has address //')
+    k2ip=$(host k2 | grep has | sed 's/.*has address //')
 
 All Kubernetes components talk to each other over ssl and use ssl client
 auth. Thus we need to create bunch of ssl certificates. To create them we
@@ -86,12 +86,12 @@ and `service-account` all signed by `KubernetesCA`
 For each of the worker node make certificate with CN `system:node:$node_name`
 and alt names that point to DNS name and an ip address
 
-    ./ssl-cert-maker.sh new_signed_cert KubernetesCA system:node:k1 1024 --subjectAltName=$K1IP --subjectAltName=k1
-    ./ssl-cert-maker.sh new_signed_cert KubernetesCA system:node:k2 1024 --subjectAltName=$K2IP --subjectAltName=k2
+    ./ssl-cert-maker.sh new_signed_cert KubernetesCA system:node:k1 1024 --subjectAltName=$k1ip --subjectAltName=k1
+    ./ssl-cert-maker.sh new_signed_cert KubernetesCA system:node:k2 1024 --subjectAltName=$k2ip --subjectAltName=k2
 
 For api server that will run on node `k1` make cert with CN `kubernetes` and related alt names
 
-    ./ssl-cert-maker.sh new_signed_cert KubernetesCA kubernetes 1024 --subjectAltName=$K1IP --subjectAltName=k1
+    ./ssl-cert-maker.sh new_signed_cert KubernetesCA kubernetes 1024 --subjectAltName=$k1ip --subjectAltName=k1
 
 At the end you should have following certificated created in `~/.ssl/certs`
 
@@ -116,3 +116,16 @@ Distribute all certificates onto all Kubernetes nodes
     scp -r ~/.ssl k2:
 
 ## Create all config files
+
+### Worker nodes config files
+
+    chmod 755 kubectl
+
+    for i in k1 k2; do
+        ./kubectl config set-cluster test-cluster --certificate-authority=$HOME/.ssl/ca/ca.KubernetesCA.crt --embed-certs=true --server=https://$k1ip:6443 --kubeconfig=$i.config
+        ./kubectl config set-credentials system:node:$i --client-certificate=$HOME/.ssl/certs/system:node:$i.crt --client-key=$HOME/.ssl/certs/system:node:$i.key --embed-certs=true --kubeconfig=$i.config
+        ./kubectl config set-context default --cluster=test-cluster --user=system:node:$i --kubeconfig=$i.config
+        ./kubectl config use-context default --kubeconfig=$i.config
+    done
+
+### kube-proxy config file
