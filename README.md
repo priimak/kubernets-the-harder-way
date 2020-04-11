@@ -6,8 +6,7 @@ Kubernets The Harder Way
 Here we describe set of steps necessary to install Kubernetes from scratch. These
 steps are solely for educational purposes.
 
-Basic Prerequisites
--------------------
+## Basic Prerequisites
 
 We are assuming that you have two nodes `k1` and `k2` on which you will be installing
 Kubernetes and the installation will proceed from some other machine. These are the
@@ -19,8 +18,7 @@ login into kubernetes nodes should also have password-less sudo access set up. O
 of doing it is to make sure that your user is member of `wheel` group and file
 `/etc/sudoers` has following entry `%wheel  ALL=(ALL)       NOPASSWD: ALL`.
 
-Install Control Plane
----------------------
+## Download all Kubernetes binaries and install Control Plane
 
 On the machine from which you will be installing kubernetes from create directory `~/kubernetest-the-harder-way`
 and then go into that directory. From that point on all actions performed below should happen
@@ -51,6 +49,8 @@ Copy control plane software onto node `k1`
         ssh k1 rm $i
     done
 
+
+## Create SSL Certificates
 
 Record host names and ip addresses for the Kubernetes hosts
 
@@ -109,3 +109,10 @@ and signing CA cert, key and revocation list in `~/.ssl/ca`
     ca.KubernetesCA.crt
     ca.KubernetesCA.key
     ca.KubernetesCA.srl
+
+Distribute all certificates onto all Kubernetes nodes
+
+    scp -r ~/.ssl k1:
+    scp -r ~/.ssl k2:
+
+## Create all config files
